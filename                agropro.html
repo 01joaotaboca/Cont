@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a4373">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Agro Pro">
+<link rel="manifest" href="data:application/manifest+json,{}" id="manifest-placeholder">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231a4373'/%3E%3Ctext x='50' y='68' font-size='50' text-anchor='middle' fill='white' font-family='Arial'%3E🚜%3C/text%3E%3C/svg%3E">
+<title>Agro Pro - João Divino</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root { --primary:#1a4373; --bg:#f0f2f5; --warning:#f39c12; --danger:#e74c3c; --success:#25d366; --info:#3498db; }
+* { box-sizing: border-box; }
+body { font-family:'Segoe UI', Roboto, system-ui, sans-serif; background:var(--bg); padding:12px; margin:0; }
+.card { background:white; padding:18px; border-radius:16px; box-shadow:0 4px 12px rgba(0,0,0,0.08); margin-bottom:16px; border-left:5px solid var(--primary); }
+h2 { font-size:12px; color:#5a6e7c; text-transform:uppercase; margin-bottom:12px; font-weight:700; letter-spacing:0.5px; display: flex; align-items: center; gap:6px; }
+input, select { width:100%; padding:14px; margin-bottom:12px; border:1px solid #e2e8f0; border-radius:14px; font-size:16px; background:#fefefe; font-weight:500; }
+input:focus, select:focus { border-color:var(--primary); outline: none; box-shadow:0 0 0 3px rgba(26,67,115,0.2); }
+.row { display:flex; gap:12px; flex-wrap:wrap; }
+button { width:100%; padding:14px; border:none; border-radius:40px; font-weight:bold; font-size:16px; color:white; margin-bottom:8px; cursor:pointer; transition: transform 0.1s; background:var(--primary); }
+button:active { transform: scale(0.97); }
+.btn-ini { background:var(--primary); }
+.btn-pausa { background:var(--warning); font-size:14px; display: flex; align-items: center; justify-content: center; gap:8px; }
+.resumo { background:#eef2ff; padding:14px; border-radius:20px; text-align:center; font-weight:800; color: var(--primary); font-size:1.1rem; margin-top:6px; }
+.status-alerta { padding:12px; border-radius:20px; text-align:center; font-weight:bold; margin-top:12px; }
+.piscar { animation: pisca 1s infinite; }
+@keyframes pisca { 0% { opacity: 1; } 50% { opacity: 0.5; background:#ffcdd2; } 100% { opacity: 1; } }
+.historico-item { background:#f8fafc; padding:12px; margin:10px 0; border-radius:18px; border-left:4px solid var(--primary); font-size:13px; }
+.historico-data { font-weight:800; color:var(--primary); display:block; margin-bottom:5px; }
+.btn-historico { background:var(--info); font-size:15px; padding:14px; }
+.soma-total { background:#2ecc71; color:white; padding:14px; border-radius:28px; text-align:center; font-weight:bold; margin-top:12px; }
+footer { text-align:center; font-size:10px; margin:20px 0; font-weight:500; color:#7f8c8d; }
+.btn-pdf { background:#c0392b; }
+.btn-wa { background:#25d366; }
+.botoes-relatorio { display:flex; gap:12px; margin-top:12px; }
+.botoes-relatorio button { flex:1; }
+.maquina-custom { display:flex; gap:8px; margin-top:8px; }
+.maquina-custom input { flex:2; margin-bottom:0; }
+.maquina-custom button { flex:1; background:var(--success); padding:12px; }
+.comparacao-card { background:#fff9e8; border-left:5px solid #f1c40f; }
+.questionamento-box { background:#ff9800; color:#2c3e2c; padding:16px; border-radius:20px; font-weight:bold; margin-top:12px; font-size:14px; border-left:5px solid #c62828; }
+.questionamento-box h4 { margin:0 0 8px 0; color:#b71c1c; font-size:16px; }
+.pausa-badge { background:#f1f5f9; border-radius:20px; padding:6px 12px; display:inline-block; margin:3px; font-size:12px; }
+.comparativo-valor { font-size:28px; font-weight:800; }
+.install-banner { background:#1a4373; color:white; padding:12px; border-radius:16px; margin-bottom:16px; text-align:center; display:none; cursor:pointer; }
+.install-banner button { background:#25d366; margin:0; padding:8px 16px; width:auto; display:inline-block; margin-top:8px; }
+</style>
+</head>
+<body onload="carregarDados(); registrarServiceWorker();">
+
+<!-- Banner de instalação para PWA -->
+<div id="installBanner" class="install-banner">
+    📱 <strong>Instalar App Agro Pro</strong><br>
+    <small>Toque aqui para instalar na tela inicial</small>
+    <button onclick="instalarApp()">📲 Instalar</button>
+</div>
+
+<div class="card">
+    <h2>📋 IDENTIFICAÇÃO</h2>
+    <input id="prop" placeholder="Proprietário" oninput="salvar()">
+    <div class="row">
+        <input id="faz" placeholder="Fazenda" oninput="salvar()">
+        <input id="tal" placeholder="Talhão" oninput="salvar()">
+    </div>
+    <input id="op" placeholder="Operador / Motorista" oninput="salvar()">
+    
+    <h2>🚜 MÁQUINA / IMPLEMENTO</h2>
+    <select id="maquina" onchange="selecionarMaquina()">
+        <option value="">Selecione...</option>
+        <option value="Trator">🚜 Trator</option>
+        <option value="Caminhão">🚚 Caminhão</option>
+        <option value="Pulverizador">✈️ Pulverizador</option>
+        <option value="Pá Carregadeira">🪣 Pá Carregadeira</option>
+        <option value="Colheitadeira">🌾 Colheitadeira</option>
+        <option value="OUTRA">➕ Outra</option>
+    </select>
+    <div id="areaMaquinaCustom" style="display:none;" class="maquina-custom">
+        <input type="text" id="maquinaCustom" placeholder="Digite o nome" oninput="salvar()">
+        <button onclick="adicionarMaquinaCustom()">Adicionar</button>
+    </div>
+    <div id="maquinaSelecionada" style="font-size:13px; background:#e9f0f5; padding:6px 12px; border-radius:40px; margin-top:6px; font-weight:bold;"></div>
+    
+    <select id="tipo" onchange="salvar(); atualizarTipo()">
+        <option value="hora">⏱️ Horímetro (Horas)</option>
+        <option value="km">📏 Quilometragem (KM)</option>
+    </select>
+</div>
+
+<div class="card">
+    <h2>⏱️ JORNADA & PAUSAS</h2>
+    <div class="row">
+        <input id="sIni" readonly placeholder="Início do turno">
+        <input id="sFim" readonly placeholder="Fim do turno">
+    </div>
+    <div class="row">
+        <button class="btn-ini" onclick="marcar('ini')">▶ INICIAR TRABALHO</button>
+        <button style="background:#475569" onclick="marcar('fim')">⏹️ FINALIZAR</button>
+    </div>
+    <div class="row">
+        <button class="btn-pausa" onclick="alternarPausa('Almoço')">🍴 ALMOÇO</button>
+        <button class="btn-pausa" onclick="alternarPausa('Manutenção')">🔧 MANUTENÇÃO</button>
+        <button class="btn-pausa" onclick="alternarPausa('Abastecimento')">⛽ ABASTECIMENTO</button>
+    </div>
+    <div id="tSist" class="resumo">⏳ Tempo Líquido: 00h 00min</div>
+    <div id="pausasLista" style="font-size:12px; background:#fef9e3; border-radius:16px; padding:8px; margin-top:8px;"></div>
+</div>
+
+<div class="card">
+    <h2>📊 MEDIÇÃO DA MÁQUINA (Horímetro/KM)</h2>
+    <div class="row">
+        <input type="number" id="vI" step="0.1" oninput="salvar(); compararTempos()" placeholder="Valor INICIAL">
+        <input type="number" id="vF" step="0.1" oninput="salvar(); compararTempos()" placeholder="Valor FINAL">
+    </div>
+    <div id="tMaq" class="resumo">📈 Total máquina: 0.00</div>
+</div>
+
+<div id="cardComparacao" class="card comparacao-card" style="display:none;">
+    <h2>⚠️ ANÁLISE CRÍTICA: RELÓGIO vs HORÍMETRO</h2>
+    <div class="row">
+        <div style="flex:1; text-align:center; padding:16px; background:#2c3e50; border-radius:24px; color:white;">
+            <div style="font-size:12px;">⏱️ TEMPO DE RELÓGIO (LÍQUIDO)</div>
+            <div id="horaRelogio" class="comparativo-valor">0h 00min</div>
+            <div style="font-size:11px;">horas trabalhadas no relógio</div>
+        </div>
+        <div style="flex:1; text-align:center; padding:16px; background:#1a4373; border-radius:24px; color:white;">
+            <div style="font-size:12px;">📟 HORÍMETRO / KM</div>
+            <div id="horaMaquina" class="comparativo-valor">0.00</div>
+            <div id="unidadeMaquina" style="font-size:11px;">horas trabalhadas</div>
+        </div>
+    </div>
+    <div id="diferencaDisplay" style="font-size:16px; font-weight:bold; text-align:center; margin:15px 0; padding:12px; border-radius:16px;"></div>
+    <div id="questionamentoBox" class="questionamento-box" style="display:none;">
+        <h4>❓ QUESTIONAMENTO OBRIGATÓRIO ❓</h4>
+        <p><strong>⚠️ INCONSISTÊNCIA DETECTADA!</strong></p>
+        <p>O <strong>RELÓGIO</strong> registrou <strong id="diffRelogioTexto"></strong> de trabalho líquido, mas o <strong>HORÍMETRO</strong> marcou apenas <strong id="diffHorimetroTexto"></strong>.</p>
+        <p>📌 <strong>DIFERENÇA:</strong> <span id="diffValorTexto" style="font-size:18px; background:#fff; padding:4px 12px; border-radius:20px;"></span></p>
+        <p style="background:#fff3e0; padding:10px; border-radius:12px; margin-top:10px;">
+        🔍 <strong>POSSÍVEIS CAUSAS:</strong><br>
+        • Máquina ficou muito tempo parada com motor ligado<br>
+        • Horímetro com defeito (sub-registrando)<br>
+        • Anotação incorreta dos valores<br>
+        • Pausas não registradas corretamente
+        </p>
+    </div>
+    <div id="alertaComparacao" class="status-alerta" style="display:none;"></div>
+</div>
+
+<div class="card" style="border-left-color:#9b59b6;">
+    <h2>🛠️ MANUTENÇÃO PREVENTIVA</h2>
+    <select id="manutSelect" onchange="selecionarManutencao()">
+        <option value="">Escolha revisão</option>
+        <option value="100">100h</option><option value="150">150h</option><option value="200">200h</option>
+        <option value="250">250h</option><option value="300">300h</option><option value="400">400h</option>
+        <option value="500">500h</option><option value="1000">1000h</option>
+    </select>
+    <input type="number" id="manutManual" placeholder="Ou digite a meta" oninput="salvar()">
+    <div id="statusManut" class="status-alerta" style="display:none;"></div>
+</div>
+
+<div class="card">
+    <h2>📁 HISTÓRICO & RELATÓRIOS</h2>
+    <button class="btn-historico" onclick="salvarSessao()" style="background:#2c7da0;">💾 SALVAR SESSÃO ATUAL</button>
+    <div id="listaHistorico"></div>
+    <div id="somaTotal" class="soma-total" style="display:none;"></div>
+    <div class="botoes-relatorio">
+        <button class="btn-pdf" onclick="gerarPDFCompleto()">📄 PDF COMPLETO</button>
+        <button class="btn-wa" onclick="enviarWA()">📱 WHATSAPP</button>
+    </div>
+    <button onclick="limparHistorico()" style="background:#7f8c8d; margin-top:10px;">🗑️ APAGAR HISTÓRICO</button>
+    <button onclick="limparTudo()" style="background:#95a5a6; margin-top:8px;">🔄 LIMPAR DADOS ATUAIS</button>
+</div>
+
+<footer>Agro Pro - Controle Inteligente de Frota | João Divino Barbosa</footer>
+
+<script>
+// ESTADO GLOBAL
+let dados = { ini: null, fim: null, pausas: [], pausaAtiva: null, inicioPausaAtiva: null, tempoPausas: 0 };
+let historicoSessoes = [];
+let maquinasPersonalizadas = [];
+let deferredPrompt;
+
+// PWA - Instalação
+function registrarServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.log('Service Worker erro:', err));
+    }
+    
+    // Detectar se pode instalar
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById('installBanner').style.display = 'block';
+    });
+}
+
+function instalarApp() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => {
+            deferredPrompt = null;
+            document.getElementById('installBanner').style.display = 'none';
+        });
+    }
+}
+
+// Criar manifest dinamicamente
+function criarManifest() {
+    const manifest = {
+        name: "Agro Pro - Controle de Frota",
+        short_name: "Agro Pro",
+        description: "Controle de horímetro e tempo de máquina agrícola",
+        start_url: ".",
+        display: "standalone",
+        theme_color: "#1a4373",
+        background_color: "#f0f2f5",
+        icons: [
+            {
+                src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%231a4373'/%3E%3Ctext x='50' y='68' font-size='50' text-anchor='middle' fill='white' font-family='Arial'%3E🚜%3C/text%3E%3C/svg%3E",
+                sizes: "any",
+                type: "image/svg+xml"
+            }
+        ]
+    };
+    const manifestStr = JSON.stringify(manifest);
+    const blob = new Blob([manifestStr], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    document.getElementById('manifest-placeholder').href = url;
+}
+criarManifest();
+
+function tocarAlarme() {
+    try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        osc.frequency.value = 880;
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.8);
+        osc.stop(audioCtx.currentTime + 0.8);
+    } catch(e) { }
+}
+
+function salvar() {
+    let obj = {
+        prop:prop.value, faz:faz.value, tal:tal.value, op:op.value,
+        vI:vI.value, vF:vF.value, sIni:sIni.value, sFim:sFim.value,
+        tipo:tipo.value, manut:manutManual.value, logica:dados,
+        historico:historicoSessoes, maquina:maquina.value,
+        maquinaCustom:maquinaCustom.value, maquinasPersonalizadas:maquinasPersonalizadas
+    };
+    localStorage.setItem('agro_joao_v11', JSON.stringify(obj));
+    validarManutencao();
+    calcularTempoLiquido();
+    compararTempos();
+}
+
+function carregarDados() {
+    let s = JSON.parse(localStorage.getItem('agro_joao_v11') || '{}');
+    prop.value = s.prop || ''; faz.value = s.faz || ''; tal.value = s.tal || '';
+    op.value = s.op || ''; vI.value = s.vI ?? ''; vF.value = s.vF ?? '';
+    sIni.value = s.sIni || ''; sFim.value = s.sFim || '';
+    tipo.value = s.tipo || 'hora';
+    manutManual.value = s.manut || '';
+    dados = s.logica || { ini:null, fim:null, pausas:[], pausaAtiva:null, inicioPausaAtiva:null, tempoPausas:0 };
+    historicoSessoes = s.historico || [];
+    maquinasPersonalizadas = s.maquinasPersonalizadas || [];
+    
+    if(s.maquina) {
+        maquina.value = s.maquina;
+        if(s.maquina === 'OUTRA' && s.maquinaCustom) {
+            maquinaCustom.value = s.maquinaCustom;
+            document.getElementById('areaMaquinaCustom').style.display = 'flex';
+            document.getElementById('maquinaSelecionada').innerHTML = `🔧 Máquina: ${s.maquinaCustom}`;
+        } else if(s.maquina && s.maquina !== 'OUTRA') {
+            let texto = maquina.options[maquina.selectedIndex]?.text || s.maquina;
+            document.getElementById('maquinaSelecionada').innerHTML = `🚜 ${texto}`;
+        }
+    }
+    atualizarSelectMaquinas();
+    atualizarTipo();
+    atualizarListaPausas();
+    carregarHistoricoUI();
+    calcularTempoLiquido();
+    compararTempos();
+    validarManutencao();
+    setInterval(() => { if(dados.ini && !dados.fim) { calcularTempoLiquido(); compararTempos(); } }, 30000);
+}
+
+function atualizarSelectMaquinas() {
+    maquinasPersonalizadas.forEach(maq => {
+        let existe = false;
+        for(let i=0;i<maquina.options.length;i++) if(maquina.options[i].value === maq) existe=true;
+        if(!existe && maq !== 'OUTRA') {
+            let opt = document.createElement('option');
+            opt.value = maq;
+            opt.text = `🔧 ${maq}`;
+            maquina.add(opt);
+        }
+    });
+}
+
+function selecionarMaquina() {
+    let valor = maquina.value;
+    if(valor === 'OUTRA') {
+        document.getElementById('areaMaquinaCustom').style.display = 'flex';
+        document.getElementById('maquinaSelecionada').innerHTML = '';
+    } else if(valor) {
+        document.getElementById('areaMaquinaCustom').style.display = 'none';
+        let txt = maquina.options[maquina.selectedIndex]?.text || valor;
+        document.getElementById('maquinaSelecionada').innerHTML = `🚜 ${txt}`;
+    } else {
+        document.getElementById('areaMaquinaCustom').style.display = 'none';
+        document.getElementById('maquinaSelecionada').innerHTML = '';
+    }
+    salvar();
+}
+
+function adicionarMaquinaCustom() {
+    let nova = maquinaCustom.value.trim();
+    if(!nova) return alert("Digite o nome da máquina");
+    let existe = false;
+    for(let i=0;i<maquina.options.length;i++) if(maquina.options[i].value === nova) existe=true;
+    if(!existe) {
+        let opt = document.createElement('option');
+        opt.value = nova;
+        opt.text = `🔧 ${nova}`;
+        maquina.add(opt);
+        maquinasPersonalizadas.push(nova);
+    }
+    maquina.value = nova;
+    document.getElementById('maquinaSelecionada').innerHTML = `🔧 Máquina: ${nova}`;
+    document.getElementById('areaMaquinaCustom').style.display = 'none';
+    maquinaCustom.value = '';
+    salvar();
+}
+
+function getMaquinaNome() {
+    if(maquina.value === 'OUTRA') return maquinaCustom.value || "Não especificada";
+    let raw = maquina.options[maquina.selectedIndex]?.text || maquina.value;
+    return raw.replace(/[🔧🚜🚚✈️🪣🌾]/g, '').trim();
+}
+
+function atualizarTipo() {
+    let un = tipo.value === 'km' ? 'KM' : 'Horas';
+    vI.placeholder = un + " Inicial";
+    vF.placeholder = un + " Final";
+    compararTempos();
+}
+
+function marcar(t) {
+    let agora = new Date();
+    let txt = agora.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    if(t === 'ini') {
+        dados.ini = agora.getTime();
+        sIni.value = txt;
+        dados.tempoPausas = 0;
+        dados.pausas = [];
+        if(dados.pausaAtiva) finalizarPausaAtual();
+        atualizarListaPausas();
+    }
+    if(t === 'fim') {
+        dados.fim = agora.getTime();
+        sFim.value = txt;
+        if(dados.pausaAtiva) finalizarPausaAtual();
+    }
+    salvar();
+}
+
+function alternarPausa(tipoP) {
+    if(dados.pausaAtiva) { finalizarPausaAtual(); return; }
+    if(!dados.ini) { alert("Inicie o trabalho primeiro"); return; }
+    if(dados.fim) { alert("Trabalho já finalizado"); return; }
+    dados.pausaAtiva = tipoP;
+    dados.inicioPausaAtiva = new Date().getTime();
+    if(tipoP === 'Manutenção') tocarAlarme();
+    atualizarListaPausas();
+    salvar();
+}
+
+function finalizarPausaAtual() {
+    if(dados.pausaAtiva && dados.inicioPausaAtiva) {
+        let fimP = new Date().getTime();
+        let dur = fimP - dados.inicioPausaAtiva;
+        dados.tempoPausas += dur;
+        dados.pausas.push({
+            tipo: dados.pausaAtiva,
+            inicio: dados.inicioPausaAtiva,
+            fim: fimP,
+            duracao: dur
+        });
+        dados.pausaAtiva = null;
+        dados.inicioPausaAtiva = null;
+        atualizarListaPausas();
+        calcularTempoLiquido();
+        salvar();
+    }
+}
+
+function calcularTempoLiquido() {
+    if(!dados.ini) { 
+        document.getElementById('tSist').innerHTML = "⏳ Tempo Líquido: 00h 00min"; 
+        return; 
+    }
+    let agora = dados.fim ? dados.fim : Date.now();
+    let total = agora - dados.ini;
+    let liq = total - dados.tempoPausas;
+    if(liq < 0) liq = 0;
+    let h = Math.floor(liq / 3600000);
+    let m = Math.floor((liq % 3600000) / 60000);
+    let status = dados.pausaAtiva ? " (⏸️ Em pausa)" : (dados.fim ? " (✅ Encerrado)" : " (🟢 Trabalhando)");
+    document.getElementById('tSist').innerHTML = `⏱️ Tempo Líquido: ${h}h ${m}min${status}`;
+    compararTempos();
+}
+
+function compararTempos() {
+    let iniVal = parseFloat(vI.value) || 0;
+    let fimVal = parseFloat(vF.value) || 0;
+    let horaMaquina = Math.max(0, fimVal - iniVal);
+    
+    let tempoLiqMs = 0;
+    if(dados.ini) {
+        let agora = dados.fim ? dados.fim : Date.now();
+        let total = agora - dados.ini;
+        tempoLiqMs = Math.max(0, total - dados.tempoPausas);
+    }
+    let horaRelogio = tempoLiqMs / 3600000;
+    let unidade = tipo.value === 'km' ? 'KM' : 'Horas';
+    
+    if(horaMaquina <= 0 && horaRelogio <= 0) {
+        document.getElementById('cardComparacao').style.display = 'none';
+        return;
+    }
+    
+    document.getElementById('cardComparacao').style.display = 'block';
+    
+    let hrRel = Math.floor(horaRelogio);
+    let minRel = Math.floor((horaRelogio - hrRel) * 60);
+    document.getElementById('horaRelogio').innerHTML = `${hrRel}h ${minRel}min`;
+    document.getElementById('horaMaquina').innerHTML = horaMaquina.toFixed(1);
+    document.getElementById('unidadeMaquina').innerHTML = unidade;
+    document.getElementById('tMaq').innerHTML = `📈 Total máquina: ${horaMaquina.toFixed(2)} ${unidade}`;
+    
+    let diferenca = horaRelogio - horaMaquina;
+    let diffAbs = Math.abs(diferenca);
+    let diffMin = Math.floor(diffAbs * 60);
+    let diffH = Math.floor(diffMin / 60);
+    let diffM = diffMin % 60;
+    
+    let diffDiv = document.getElementById('diferencaDisplay');
+    let questionamentoBox = document.getElementById('questionamentoBox');
+    let alertDiv = document.getElementById('alertaComparacao');
+    
+    if(diffAbs > 0.5) {
+        if(diferenca > 0) {
+            diffDiv.innerHTML = `⚠️ RELÓGIO registrou MAIS tempo que o HORÍMETRO! Diferença de ${diffH}h ${diffM}min`;
+            diffDiv.style.background = "#ffebee";
+            diffDiv.style.color = "#c62828";
+            diffDiv.style.padding = "12px";
+            diffDiv.style.borderRadius = "16px";
+            
+            questionamentoBox.style.display = "block";
+            document.getElementById('diffRelogioTexto').innerHTML = `${hrRel}h ${minRel}min`;
+            document.getElementById('diffHorimetroTexto').innerHTML = `${horaMaquina.toFixed(1)} ${unidade}`;
+            document.getElementById('diffValorTexto').innerHTML = `${diffH}h ${diffM}min (${diffAbs.toFixed(1)}h)`;
+            
+            alertDiv.style.display = 'block';
+            alertDiv.className = 'status-alerta piscar';
+            alertDiv.style.background = "#ffebee";
+            alertDiv.style.color = "#b71c1c";
+            alertDiv.innerHTML = `🔴 ATENÇÃO: Relógio marcou ${hrRel}h ${minRel}min, horímetro registrou apenas ${horaMaquina.toFixed(1)} ${unidade}! Diferença de ${diffAbs.toFixed(1)}h. VERIFIQUE COM O OPERADOR!`;
+            
+            if(diffAbs > 1) tocarAlarme();
+        } else {
+            diffDiv.innerHTML = `⚠️ HORÍMETRO registrou MAIS que o relógio! Diferença de ${diffH}h ${diffM}min`;
+            diffDiv.style.background = "#fff3cd";
+            diffDiv.style.color = "#856404";
+            questionamentoBox.style.display = "block";
+            document.getElementById('diffRelogioTexto').innerHTML = `${hrRel}h ${minRel}min`;
+            document.getElementById('diffHorimetroTexto').innerHTML = `${horaMaquina.toFixed(1)} ${unidade}`;
+            document.getElementById('diffValorTexto').innerHTML = `${diffH}h ${diffM}min`;
+            alertDiv.style.display = 'block';
+            alertDiv.innerHTML = `🔴 Horímetro registrou ${diffAbs.toFixed(1)}h a mais que o tempo de relógio!`;
+        }
+    } else {
+        diffDiv.innerHTML = `✅ Diferença normal: ${diffH}h ${diffM}min`;
+        diffDiv.style.background = "#e8f5e9";
+        diffDiv.style.color = "#2e7d32";
+        questionamentoBox.style.display = "none";
+        alertDiv.style.display = "none";
+    }
+}
+
+function atualizarListaPausas() {
+    let div = document.getElementById('pausasLista');
+    if(!dados.pausas.length && !dados.pausaAtiva) { div.innerHTML = "📭 Nenhuma pausa registrada"; return; }
+    let html = `<strong>⏸️ Registro de pausas:</strong><br>`;
+    dados.pausas.forEach(p => {
+        let durMin = Math.floor(p.duracao / 60000);
+        let hh = Math.floor(durMin/60), mm = durMin%60;
+        let inicioH = new Date(p.inicio).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        let fimH = new Date(p.fim).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        html += `<span class="pausa-badge">📌 ${p.tipo}: ${inicioH}→${fimH} (${hh}h${mm}min)</span><br>`;
+    });
+    if(dados.pausaAtiva) html += `<span style="background:#ffe0b5; border-radius:20px; padding:4px 12px;">⏳ PAUSA ATIVA: ${dados.pausaAtiva}</span>`;
+    div.innerHTML = html;
+}
+
+function selecionarManutencao() {
+    let sel = document.getElementById('manutSelect').value;
+    if(sel !== '') manutManual.value = sel;
+    salvar();
+    validarManutencao();
+}
+
+function validarManutencao() {
+    let meta = parseFloat(manutManual.value);
+    let medido = (parseFloat(vF.value)||0) - (parseFloat(vI.value)||0);
+    if(isNaN(meta) || meta <= 0 || medido <= 0) { document.getElementById('statusManut').style.display = 'none'; return; }
+    let restante = meta - medido;
+    let divStatus = document.getElementById('statusManut');
+    if(restante <= 0) {
+        divStatus.style.display = 'block';
+        divStatus.innerHTML = `⚠️ MANUTENÇÃO VENCIDA! Meta: ${meta} ${tipo.value==='km'?'KM':'h'}.`;
+        divStatus.style.background = "#f8d7da";
+        divStatus.classList.add('piscar');
+        tocarAlarme();
+    } else if(restante <= (meta * 0.1)) {
+        divStatus.style.display = 'block';
+        divStatus.innerHTML = `🔔 Faltam ${restante.toFixed(1)} ${tipo.value==='km'?'KM':'h'} para revisão.`;
+        divStatus.style.background = "#fff3cd";
+        divStatus.classList.remove('piscar');
+    } else {
+        divStatus.style.display = 'none';
+    }
+}
+
+function salvarSessao() {
+    let iniVal = parseFloat(vI.value)||0;
+    let fimVal = parseFloat(vF.value)||0;
+    let medido = fimVal - iniVal;
+    let tempoHoras = 0;
+    if(dados.ini) {
+        let agora = dados.fim ? dados.fim : Date.now();
+        let liq = Math.max(0, (agora - dados.ini) - dados.tempoPausas);
+        tempoHoras = liq / 3600000;
+    }
+    let sessao = {
+        id: Date.now(),
+        dataHora: new Date().toLocaleString(),
+        proprietario: prop.value || "---",
+        fazenda: faz.value || "---",
+        talhao: tal.value || "---",
+        operador: op.value || "---",
+        maquina: getMaquinaNome(),
+        tipoMedicao: tipo.value === 'km' ? 'KM' : 'Horas',
+        valorInicial: iniVal,
+        valorFinal: fimVal,
+        totalMaquina: medido.toFixed(2),
+        tempoRelogio: tempoHoras.toFixed(2),
+        tempoFormatado: `${Math.floor(tempoHoras)}h ${Math.floor((tempoHoras%1)*60)}min`,
+        diferenca: (tempoHoras - medido).toFixed(2)
+    };
+    historicoSessoes.unshift(sessao);
+    if(historicoSessoes.length > 50) historicoSessoes.pop();
+    salvar();
+    carregarHistoricoUI();
+    alert("✅ Sessão salva!");
+}
+
+function carregarHistoricoUI() {
+    let container = document.getElementById('listaHistorico');
+    let total = 0;
+    if(!historicoSessoes.length) { container.innerHTML = "<div style='padding:8px;text-align:center'>Nenhuma sessão</div>"; return; }
+    let html = '';
+    historicoSessoes.forEach(s => {
+        total += parseFloat(s.totalMaquina) || 0;
+        html += `<div class="historico-item">
+            <div class="historico-data">📅 ${s.dataHora} | ${s.maquina}</div>
+            <div>👤 ${s.operador} | ${s.fazenda}</div>
+            <div>📊 Máquina: ${s.totalMaquina} ${s.tipoMedicao} | ⏱️ Relógio: ${s.tempoFormatado}</div>
+            <div>⚠️ Diferença: ${Math.abs(s.diferenca)} ${s.tipoMedicao}</div>
+        </div>`;
+    });
+    container.innerHTML = html;
+    document.getElementById('somaTotal').style.display = 'block';
+    document.getElementById('somaTotal').innerHTML = `📈 TOTAL ACUMULADO: ${total.toFixed(2)} ${historicoSessoes[0]?.tipoMedicao || ''}`;
+}
+
+function limparHistorico() {
+    if(confirm("Apagar histórico?")) { historicoSessoes = []; salvar(); carregarHistoricoUI(); }
+}
+
+function limparTudo() {
+    if(confirm("Resetar dados atuais?")) {
+        dados = { ini:null, fim:null, pausas:[], pausaAtiva:null, inicioPausaAtiva:null, tempoPausas:0 };
+        vI.value = ''; vF.value = ''; sIni.value = ''; sFim.value = '';
+        document.getElementById('pausasLista').innerHTML = "Nenhuma pausa";
+        document.getElementById('tSist').innerHTML = "⏳ Tempo Líquido: 00h 00min";
+        salvar();
+        compararTempos();
+    }
+}
+
+async function gerarPDFCompleto() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    let y = 20;
+    let linha = (txt) => { doc.text(txt, 15, y); y+=6; };
+    linha("AGRO PRO - RELATÓRIO COMPLETO");
+    linha(`Data: ${new Date().toLocaleString()}`);
+    linha(`Proprietário: ${prop.value || 'N/I'} | Fazenda: ${faz.value || 'N/I'}`);
+    linha(`Operador: ${op.value || 'N/I'} | Máquina: ${getMaquinaNome()}`);
+    let horaMaq = (parseFloat(vF.value)||0) - (parseFloat(vI.value)||0);
+    let horaRel = 0;
+    if(dados.ini) {
+        let agora = dados.fim ? dados.fim : Date.now();
+        horaRel = Math.max(0, (agora - dados.ini - dados.tempoPausas)) / 3600000;
+    }
+    linha(`Horímetro: ${horaMaq.toFixed(2)} ${tipo.value==='km'?'KM':'h'}`);
+    linha(`Tempo relógio: ${Math.floor(horaRel)}h ${Math.floor((horaRel%1)*60)}min`);
+    linha(`Diferença: ${Math.abs(horaRel - horaMaq).toFixed(2)} ${tipo.value==='km'?'KM':'h'}`);
+    doc.save(`agropro_${Date.now()}.pdf`);
+}
+
+function enviarWA() {
+    let horaMaq = (parseFloat(vF.value)||0) - (parseFloat(vI.value)||0);
+    let horaRel = 0;
+    if(dados.ini) {
+        let agora = dados.fim ? dados.fim : Date.now();
+        horaRel = Math.max(0, (agora - dados.ini - dados.tempoPausas)) / 3600000;
+    }
+    let texto = `🌾 AGRO PRO - RELATÓRIO\n\n`;
+    texto += `👤 ${prop.value || '-'}\n`;
+    texto += `🚜 ${getMaquinaNome()} | Operador: ${op.value || '-'}\n`;
+    texto += `📊 HORÍMETRO: ${horaMaq.toFixed(1)} ${tipo.value==='km'?'KM':'h'}\n`;
+    texto += `⏱️ RELÓGIO: ${Math.floor(horaRel)}h ${Math.floor((horaRel%1)*60)}min\n`;
+    texto += `⚠️ DIFERENÇA: ${Math.abs(horaRel - horaMaq).toFixed(1)} ${tipo.value==='km'?'KM':'h'}\n`;
+    if(Math.abs(horaRel - horaMaq) > 0.5) texto += `❓ QUESTIONAR OPERADOR SOBRE INCONSISTÊNCIA!`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+}
+</script>
+</body>
+</html>
