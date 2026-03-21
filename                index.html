@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1a4373">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Agro Pro - João Divino Barbosa ®</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        :root { --primary:#1a4373; --bg:#f0f2f5; --warning:#f39c12; --danger:#e74c3c; --success:#25d366; --dark-card: #2c3e50; --text-muted: #5a6e7c; }
+        * { box-sizing: border-box; font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background:var(--bg); padding:12px; margin:0; padding-bottom: 40px; }
+        .card { background:white; padding:18px; border-radius:18px; box-shadow:0 6px 15px rgba(0,0,0,0.1); margin-bottom:16px; border-left:6px solid var(--primary); }
+        h2 { font-size:11px; color:var(--text-muted); text-transform:uppercase; margin-bottom:12px; font-weight:800; display:flex; align-items:center; gap:6px; }
+        input, textarea { width:100%; padding:14px; margin-bottom:10px; border:2px solid #e2e8f0; border-radius:12px; font-size:16px; font-weight:600; outline: none; }
+        input:focus { border-color: var(--primary); }
+        textarea { height: 80px; resize: none; background: #fff4f4; border-color: var(--danger); }
+        .row { display:flex; gap:10px; }
+        button { width:100%; padding:16px; border:none; border-radius:40px; font-weight:bold; font-size:15px; color:white; margin-bottom:8px; cursor:pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        button:active { transform: scale(0.96); opacity: 0.9; box-shadow: none; }
+        .card-medicao { background: var(--dark-card); color: white; border-left-color: #1abc9c; }
+        .card-medicao h2 { color: #1abc9c; }
+        .card-medicao input { background: #34495e; border: none; color: #1abc9c; font-size: 24px; text-align: center; }
+        .st-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-top: 5px; }
+        .st-ok { background: #dcfce7; color: #166534; }
+        .st-erro { background: #fee2e2; color: #b32d2e; border: 1px solid #e74c3c; }
+        .hidden { display: none; }
+        footer { text-align:center; font-size:10px; margin:20px; color:#94a3b8; font-weight: bold; }
+    </style>
+</head>
+<body onload="carregarDados()">
+
+<div class="card">
+    <h2>📋 1. LOCALIZAÇÃO E IDENTIFICAÇÃO</h2>
+    <input id="fazenda" placeholder="Nome da Fazenda (Obrigatório)" oninput="salvar()">
+    <input id="talhao" placeholder="Talhão / Localização (Obrigatório)" oninput="salvar()">
+    <div class="row">
+        <input id="op" placeholder="Operador (Obrigatório)" oninput="salvar()" style="flex:2">
+        <input id="numMaq" placeholder="Nº Máquina" oninput="salvar()" style="flex:1">
+    </div>
+</div>
+
+<div class="card card-medicao">
+    <h2>📊 2. MEDIÇÃO TÉCNICA</h2>
+    <div class="row">
+        <div style="flex:1">
+            <span style="font-size:10px; color:#1abc9c; font-weight:bold;">INICIAL (Obrigatório)</span>
+            <input type="number" id="vI" step="0.1" oninput="salvar()" placeholder="0.0">
+        </div>
+        <div style="flex:1">
+            <span style="font-size:10px; color:#1abc9c; font-weight:bold;">FINAL (Obrigatório p/ Fim)</span>
+            <input type="number" id="vF" step="0.1" oninput="salvar()" placeholder="0.0">
+        </div>
+    </div>
+    <div style="text-align: center; margin-top: 10px;">
+        <span style="font-size: 10px; color: #bdc3c7;">TOTAL MÁQUINA:</span>
+        <span id="totMaqVisual" style="font-size: 26px; font-weight: 900; display: block;">0.00</span>
+        <div id="statusAnalise"></div>
+    </div>
+    <div id="areaJustificativa" class="hidden" style="margin-top:15px;">
+        <label style="font-size:10px; color:var(--danger); font-weight:bold;">⚠️ JUSTIFIQUE A HORA INCONSEQUENTE:</label>
+        <textarea id="justificativa" placeholder="Obrigatório em caso de divergência..." oninput="salvar()"></textarea>
+    </div>
+    <div id="msgTrava" style="font-size: 9px; color: #1abc9c; text-align: center; margin-top: 8px; font-weight: bold;"></div>
+</div>
+
+<div class="card">
+    <h2>⏱️ 3. JORNADA</h2>
+    <div class="row" style="text-align:center">
+        <div style="flex:1"><label style="font-size:9px; font-weight:bold">INÍCIO</label><input id="sIni" readonly style="border:none; text-align:center; color:#1a4373"></div>
+        <div style="flex:1"><label style="font-size:9px; font-weight:bold">FIM</label><input id="sFim" readonly style="border:none; text-align:center; color:#e74c3c"></div>
+    </div>
+    <button style="background:#1a4373" onclick="marcar('ini')">▶ INICIAR TRABALHO</button>
+    <button style="background:#475569" onclick="marcar('fim')">⏹️ FINALIZAR DIA</button>
+    <div style="background:#eef2ff; padding:10px; border-radius:12px; text-align:center; margin-top:10px;">
+        <span id="tSist" style="font-weight:900; color:#1a4373; font-size:18px; display:block">Tempo Líquido: 0h 0min</span>
+    </div>
+</div>
+
+<div class="card">
+    <button id="btnPDF" style="background:#e74c3c" onclick="gerarPDF()">📄 GERAR PDF PROFISSIONAL</button>
+    <button id="btnWA" style="background:#25d366" onclick="enviarWA()">📱 WHATSAPP</button>
+    <button onclick="limparTudo()" style="background:#95a5a6; font-size:10px; padding:8px; margin-top:10px">🔄 RESETAR SISTEMA</button>
+</div>
+
+<footer>Desenvolvido por João Divino Barbosa ®</footer>
+
+<script>
+// LÓGICA DO SISTEMA
+let dados = { ini: null, fim: null };
+let ultimaMedicaoFinal = 0;
+
+function salvar() {
+    let obj = { fazenda: fazenda.value, talhao: talhao.value, op: op.value, numMaq: numMaq.value, vI: vI.value, vF: vF.value, sIni: sIni.value, sFim: sFim.value, logica: dados, trava: ultimaMedicaoFinal, just: justificativa.value };
+    localStorage.setItem('agropro_lock_final', JSON.stringify(obj));
+    calcular();
+}
+
+function carregarDados() {
+    let s = JSON.parse(localStorage.getItem('agropro_lock_final') || '{}');
+    fazenda.value = s.fazenda || ''; talhao.value = s.talhao || ''; op.value = s.op || ''; numMaq.value = s.numMaq || '';
+    vI.value = s.vI || ''; vF.value = s.vF || ''; sIni.value = s.sIni || ''; sFim.value = s.sFim || '';
+    justificativa.value = s.just || '';
+    dados = s.logica || { ini: null, fim: null };
+    ultimaMedicaoFinal = s.trava || 0;
+    if(ultimaMedicaoFinal > 0) document.getElementById('msgTrava').innerText = `🔒 ÚLTIMO FINAL: ${ultimaMedicaoFinal}`;
+    calcular();
+}
+
+function validarCamposIniciais() {
+    if (!fazenda.value.trim() || !talhao.value.trim() || !op.value.trim() || !vI.value.trim()) {
+        alert("❌ BLOQUEADO: Preencha Fazenda, Talhão, Operador e Horímetro Inicial!");
+        return false;
+    }
+    return true;
+}
+
+function marcar(t) {
+    if(t === 'ini') {
+        if (!validarCamposIniciais()) return;
+        const valIni = parseFloat(vI.value);
+        if (ultimaMedicaoFinal > 0 && valIni !== ultimaMedicaoFinal) {
+            alert(`❌ ERRO DE CONTINUIDADE: A máquina parou com ${ultimaMedicaoFinal}. Corrija para prosseguir.`);
+            vI.value = ultimaMedicaoFinal;
+            return;
+        }
+        dados.ini = new Date().getTime();
+        sIni.value = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        sFim.value = ""; dados.fim = null;
+    } else {
+        if (!dados.ini) return alert("❌ ERRO: O trabalho ainda não foi iniciado!");
+        if (!vF.value.trim() || parseFloat(vF.value) <= parseFloat(vI.value)) {
+            alert("❌ BLOQUEADO: Preencha o Horímetro Final corretamente!");
+            return;
+        }
+        const totalMaq = parseFloat(vF.value) - parseFloat(vI.value);
+        const liqMs = new Date().getTime() - dados.ini;
+        const horasRelogio = liqMs / 3600000;
+        if (totalMaq > (horasRelogio + 0.15) && !justificativa.value.trim()) {
+            alert("❌ BLOQUEADO: Justificativa obrigatória para Hora Inconsequente!");
+            document.getElementById('justificativa').focus();
+            return;
+        }
+        dados.fim = new Date().getTime();
+        sFim.value = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+        ultimaMedicaoFinal = parseFloat(vF.value);
+    }
+    salvar();
+}
+
+function calcular() {
+    let agora = dados.fim || new Date().getTime();
+    let liqMs = dados.ini ? (agora - dados.ini) : 0;
+    let horasRelogio = liqMs / 3600000;
+    document.getElementById('tSist').innerHTML = `Tempo Líquido: ${Math.floor(horasRelogio)}h ${Math.floor((liqMs % 3600000) / 60000)}min`;
+    let totalMaq = Math.max(0, (parseFloat(vF.value) || 0) - (parseFloat(vI.value) || 0));
+    document.getElementById('totMaqVisual').innerText = totalMaq.toFixed(2);
+    const statusDiv = document.getElementById('statusAnalise');
+    const areaJust = document.getElementById('areaJustificativa');
+    if(totalMaq > 0 && dados.ini) {
+        if(totalMaq > (horasRelogio + 0.15)) {
+            statusDiv.innerHTML = `<span class="st-badge st-erro">⚠️ HORA INCONSEQUENTE!</span>`;
+            areaJust.classList.remove('hidden');
+        } else {
+            statusDiv.innerHTML = `<span class="st-badge st-ok">✅ OPERAÇÃO CONSISTENTE</span>`;
+            areaJust.classList.add('hidden');
+        }
+    }
+}
+
+function gerarPDF() {
+    if (!dados.fim) return alert("❌ Finalize o dia para gerar o PDF!");
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFillColor(26, 67, 115); doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFontSize(18);
+    doc.text("RELATÓRIO TÉCNICO AGRO PRO", 105, 18, {align:"center"});
+    doc.setFontSize(9); doc.text(`Emissão: ${new Date().toLocaleString()} | João Divino Barbosa ®`, 105, 30, {align:"center"});
+    doc.setTextColor(0,0,0); doc.setFontSize(11);
+    let y = 55;
+    doc.setFont("helvetica", "bold"); doc.text("1. IDENTIFICAÇÃO", 20, y); y+=8;
+    doc.setFont("helvetica", "normal");
+    doc.text(`Fazenda: ${fazenda.value}`, 20, y); y+=7;
+    doc.text(`Talhão: ${talhao.value}`, 20, y); y+=7;
+    doc.text(`Operador: ${op.value} | Máquina: ${numMaq.value}`, 20, y); y+=15;
+    doc.setFont("helvetica", "bold"); doc.text("2. RENDIMENTO", 20, y); y+=8;
+    doc.setFont("helvetica", "normal");
+    doc.text(`Horímetro: ${vI.value} -> ${vF.value} (Total: ${document.getElementById('totMaqVisual').innerText}h)`, 20, y); y+=7;
+    doc.text(`Relógio: ${sIni.value} -> ${sFim.value} | Líquido: ${document.getElementById('tSist').innerText}`, 20, y); y+=15;
+    if(!document.getElementById('areaJustificativa').classList.contains('hidden')) {
+        doc.setTextColor(179, 45, 46); doc.setFont("helvetica", "bold");
+        doc.text("3. JUSTIFICATIVA DE DIVERGÊNCIA", 20, y); y+=8;
+        doc.setFont("helvetica", "normal"); doc.setTextColor(0,0,0);
+        let lines = doc.splitTextToSize(justificativa.value || "Sem justificativa.", 170);
+        doc.text(lines, 20, y);
+    }
+    doc.setDrawColor(200); doc.line(20, 260, 100, 260);
+    doc.setFontSize(8); doc.text("Assinatura do Responsável", 20, 265);
+    doc.text("João Divino Barbosa ®", 150, 285);
+    doc.save(`Relatorio_${fazenda.value}.pdf`);
+}
+
+function enviarWA() {
+    if (!dados.fim) return alert("❌ Finalize o dia para enviar via WhatsApp!");
+    let txt = `*RELATÓRIO AGRO PRO ®*\n📍 *Fazenda:* ${fazenda.value}\n🚜 *Máq:* ${numMaq.value}\n⚙️ *Trabalhado:* ${document.getElementById('totMaqVisual').innerText}h\n⏱️ *Relógio:* ${document.getElementById('tSist').innerText}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`);
+}
+
+function limparTudo() { if(confirm("Deseja resetar todo o sistema?")) { localStorage.clear(); location.reload(); } }
+
+// REGISTRO DO SERVICE WORKER (PARA PWA)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('Agro Pro Offline Ativo!'))
+      .catch(err => console.log('Erro no Service Worker', err));
+  });
+}
+</script>
+</body>
+</html>
